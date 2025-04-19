@@ -6,11 +6,11 @@ classdef DWANavigator
         radius = 0.178;            % 机器人半径 [m]
         max_speed = 1.0;         % 最大速度 [m/s]
         min_speed = -0.5;         % 最小速度 [m/s]
-        max_yawrate = 40.0*pi/180; % 最大角速度 [rad/s]
+        max_omega = 40.0*pi/180; % 最大角速度 [rad/s]
         max_accel = 0.2;          % 最大加速度 [m/ss]
         max_domega = 40.0*pi/180; % 最大角加速度 [rad/ss]
         v_resolution = 0.05;      % 速度分辨率 [m/s]
-        yawrate_resolution = pi/180; % 角速度分辨率 [rad/s]
+        omega_resolution = pi/180; % 角速度分辨率 [rad/s]
         dt = 0.25;                 % 时间步长 [s]
         predict_time = 3.0;       % 预测时间 [s]
         
@@ -44,19 +44,19 @@ classdef DWANavigator
             obj.trajectory = initial_state;
         end
         
-        function [best_v, best_yawrate] = plan(obj)
+        function [best_v, best_omega] = plan(obj)
             % 执行DWA路径规划，返回最佳速度和角速度
             
             % 计算动态窗口
-            [v_min, v_max, yawrate_min, yawrate_max] = obj.calc_dynamic_window();
+            [v_min, v_max, omega_min, omega_max] = obj.calc_dynamic_window();
             
             % 在动态窗口内采样速度
-            [v_samples, yawrate_samples] = obj.sample_velocity_space(...
-                v_min, v_max, yawrate_min, yawrate_max);
+            [v_samples, omega_samples] = obj.sample_velocity_space(...
+                v_min, v_max, omega_min, omega_max);
             
             % 评估每条轨迹并选择最佳速度
-            [best_v, best_yawrate] = obj.evaluate_trajectories(...
-                v_samples, yawrate_samples);
+            [best_v, best_omega] = obj.evaluate_trajectories(...
+                v_samples, omega_samples);
         end
         
         function obj = update_state(obj, v, omega)
@@ -132,12 +132,12 @@ classdef DWANavigator
     end
     
     methods (Access = private)
-        function [v_min, v_max, yawrate_min, yawrate_max] = calc_dynamic_window(obj)
+        function [v_min, v_max, omega_min, omega_max] = calc_dynamic_window(obj)
             % 基于机器人的运动限制计算动态窗口
             
             % 速度限制
             Vs = [obj.min_speed, obj.max_speed, ...
-                  -obj.max_yawrate, obj.max_yawrate];
+                  -obj.max_omega, obj.max_omega];
             
             % 基于加速度的动态窗口
             Vd = [obj.state(4) - obj.max_accel * obj.dt, ...
@@ -148,11 +148,11 @@ classdef DWANavigator
             % 最终动态窗口
             v_min = max(Vs(1), Vd(1));
             v_max = min(Vs(2), Vd(2));
-            yawrate_min = max(Vs(3), Vd(3));
-            yawrate_max = min(Vs(4), Vd(4));
+            omega_min = max(Vs(3), Vd(3));
+            omega_max = min(Vs(4), Vd(4));
         end
         
-        function [v_samples, yawrate_samples] = sample_velocity_space(obj, v_min, v_max, yawrate_min, yawrate_max)
+        function [v_samples, omega_samples] = sample_velocity_space(obj, v_min, v_max, omega_min, omega_max)
             % 在动态窗口内生成速度样本
             
             % 生成速度样本
@@ -162,29 +162,29 @@ classdef DWANavigator
             end
             
             % 生成角速度样本
-            yawrate_samples = yawrate_min:obj.yawrate_resolution:yawrate_max;
-            if isempty(yawrate_samples)
-                yawrate_samples = [yawrate_min, yawrate_max];
+            omega_samples = omega_min:obj.omega_resolution:omega_max;
+            if isempty(omega_samples)
+                omega_samples = [omega_min, omega_max];
             end
             
             % 确保至少有一个样本
             if length(v_samples) < 2
                 v_samples = [v_samples, v_samples];
             end
-            if length(yawrate_samples) < 2
-                yawrate_samples = [yawrate_samples, yawrate_samples];
+            if length(omega_samples) < 2
+                omega_samples = [omega_samples, omega_samples];
             end
         end
         
-        function [best_v, best_yawrate] = evaluate_trajectories(obj, v_samples, yawrate_samples)
+        function [best_v, best_omega] = evaluate_trajectories(obj, v_samples, omega_samples)
             % 评估所有可能的轨迹并选择最佳速度
             
             max_score = -inf;
             best_v = 0.0;
-            best_yawrate = 0.0;
+            best_omega = 0.0;
             
             for v = v_samples
-                for omega = yawrate_samples
+                for omega = omega_samples
                     % 预测轨迹
                     traj = obj.predict_trajectory(obj.state, v, omega);
                     plot(traj(:,1),traj(:,2),'y-','HandleVisibility', 'off');hold on;
@@ -203,7 +203,7 @@ classdef DWANavigator
                     if score > max_score
                         max_score = score;
                         best_v = v;
-                        best_yawrate = omega;
+                        best_omega = omega;
                     end
                 end
             end
