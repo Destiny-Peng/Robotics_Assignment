@@ -1,0 +1,12 @@
+[submodule "ros2/turtlebot3"]
+	path = ros2/turtlebot3
+	url = https://github.com/ROBOTIS-GIT/turtlebot3.git
+[submodule "ros2/turtlebot3_msg"]
+	path = ros2/turtlebot3_msg
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_msg.git
+[submodule "ros2/turtlebot3_simulation"]
+	path = ros2/turtlebot3_simulation
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulation.git
+[submodule "ros2/DynamixelSDK"]
+	path = ros2/DynamixelSDK
+	url = https://github.com/ROBOTIS-GIT/DynamixelSDK.git
